@@ -190,7 +190,7 @@ export default function Create() {
         </div>
 
         {/* Right Column: Result */}
-        <div className={`flex-1 flex flex-col h-full transition-all duration-500 ${(activeTab === 'Post' ? postResult || isGeneratingPost : noteResult || isGeneratingNote) ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none hidden lg:flex'}`}>
+        <div className={`flex-1 flex-col h-full transition-all duration-500 ${(activeTab === 'Post' ? postResult || isGeneratingPost : noteResult || isGeneratingNote) ? 'flex' : 'hidden lg:flex'}`}>
           
           {(activeTab === 'Post' && isGeneratingPost) || (activeTab === 'Connection' && isGeneratingNote) ? (
             <div className="flex-1 bg-pastel-blue/30 rounded-[32px] md:rounded-[36px] shadow-soft p-8 flex flex-col items-center justify-center animate-pulse border border-border-subtle">
