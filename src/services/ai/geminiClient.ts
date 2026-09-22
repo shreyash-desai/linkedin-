@@ -56,9 +56,9 @@ export const aiService = {
       const jsonStr = jsonMatch ? jsonMatch[0].replace(/```json\n/, '').replace(/```/, '') : text;
       
       return JSON.parse(jsonStr) as AIGeneratedPost;
-    } catch (error) {
+    } catch (error: any) {
       console.error("AI Generation Error:", error);
-      throw new Error("Failed to generate content with Gemini API.");
+      throw new Error(error?.message || "Failed to generate content with Gemini API.");
     }
   },
   
@@ -84,9 +84,9 @@ export const aiService = {
       const result = await model.generateContent(prompt);
       const text = result.response.text();
       return text.trim();
-    } catch (error) {
+    } catch (error: any) {
       console.error("AI Generation Error:", error);
-      throw new Error("Failed to generate connection note with Gemini API.");
+      throw new Error(error?.message || "Failed to generate connection note with Gemini API.");
     }
   },
 
@@ -120,9 +120,9 @@ export const aiService = {
       const jsonStr = jsonMatch ? jsonMatch[0].replace(/```json\n/, '').replace(/```/, '') : text;
       
       return JSON.parse(jsonStr);
-    } catch (error) {
+    } catch (error: any) {
       console.error("AI Analysis Error:", error);
-      throw new Error("Failed to analyze profile with Gemini API.");
+      throw new Error(error?.message || "Failed to analyze profile with Gemini API.");
     }
   }
 };
