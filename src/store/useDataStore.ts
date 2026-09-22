@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { supabase } from '../services/supabaseClient';
+import { useAuthStore } from './useAuthStore';
 import type { AIGeneratedPost } from '../services/ai/geminiClient';
 
 export interface Draft extends AIGeneratedPost {
@@ -7,11 +9,13 @@ export interface Draft extends AIGeneratedPost {
   date: string;
   tag: string;
   color: string;
+  status: string;
 }
 
 export interface Idea {
   id: string;
   title: string;
+  content: string;
   status: string;
   tag: string;
   color: string;
@@ -21,61 +25,128 @@ export interface Idea {
 interface DataState {
   drafts: Draft[];
   ideas: Idea[];
-  addDraft: (draft: Omit<Draft, 'id' | 'date' | 'color'>) => void;
-  addIdea: (idea: Omit<Idea, 'id' | 'createdAt' | 'color'>) => void;
+  isLoading: boolean;
+  fetchData: () => Promise<void>;
+  addDraft: (draft: Omit<Draft, 'id' | 'date' | 'color' | 'status'>) => Promise<void>;
+  addIdea: (idea: Omit<Idea, 'id' | 'createdAt' | 'color' | 'status' | 'tag'>) => Promise<void>;
 }
 
 const COLORS = ['bg-pastel-blue', 'bg-pastel-green', 'bg-pastel-peach', 'bg-soft-yellow', 'bg-soft-lavender', 'bg-soft-green'];
+const getRandomColor = () => COLORS[Math.floor(Math.random() * COLORS.length)];
 
 export const useDataStore = create<DataState>((set) => ({
-  drafts: [
-    { 
-      id: '1', 
-      title: 'Why simplicity wins in product design', 
-      post: 'Building products has taught me that the hardest part isn\'t writing code...', 
-      hook: 'Most businesses don\'t have an AI problem.', 
-      hashtags: [], 
-      alternative_hooks: [], 
-      date: 'Today', 
-      tag: 'Product', 
-      color: 'bg-soft-green' 
-    },
-    { 
-      id: '2', 
-      title: 'The hidden cost of complex features', 
-      post: 'I used to think more features meant a better product...', 
-      hook: 'More features do not equal more value.', 
-      hashtags: [], 
-      alternative_hooks: [], 
-      date: 'Yesterday', 
-      tag: 'Engineering', 
-      color: 'bg-soft-lavender' 
-    },
-  ],
-  ideas: [
-    { id: '1', title: 'How I automated a boring business process', status: 'Developing', tag: 'Automation', color: 'bg-pastel-blue', createdAt: '2d ago' },
-    { id: '2', title: 'My biggest mistake as a founder', status: 'Inbox', tag: 'Leadership', color: 'bg-pastel-peach', createdAt: '5d ago' }
-  ],
-  addDraft: (draft) => set((state) => ({
-    drafts: [
-      {
-        ...draft,
-        id: Math.random().toString(36).substring(7),
-        date: 'Just now',
-        color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      },
-      ...state.drafts
-    ]
-  })),
-  addIdea: (idea) => set((state) => ({
-    ideas: [
-      {
-        ...idea,
-        id: Math.random().toString(36).substring(7),
-        createdAt: 'Just now',
-        color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      },
-      ...state.ideas
-    ]
-  }))
+  drafts: [],
+  ideas: [],
+  isLoading: false,
+
+  fetchData: async () => {
+    const { user } = useAuthStore.getState();
+    if (!user) return;
+
+    set({ isLoading: true });
+
+    try {
+      const [postsRes, ideasRes] = await Promise.all([
+        supabase.from('posts').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+        supabase.from('ideas').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+      ]);
+
+      if (postsRes.error) throw postsRes.error;
+      if (ideasRes.error) throw ideasRes.error;
+
+      // Map DB posts to store Drafts
+      const drafts: Draft[] = (postsRes.data || []).map(p => ({
+        id: p.id,
+        title: p.title || p.hook || 'Untitled',
+        post: p.content,
+        hook: p.hook || '',
+        cta: p.cta || '',
+        hashtags: p.hashtags || [],
+        alternative_hooks: [], // We didn't store these in DB schema explicitly
+        date: new Date(p.created_at).toLocaleDateString(),
+        tag: p.post_type || 'Post',
+        color: getRandomColor(),
+        status: p.status
+      }));
+
+      // Map DB ideas to store Ideas
+      const ideas: Idea[] = (ideasRes.data || []).map(i => ({
+        id: i.id,
+        title: i.title,
+        content: i.content || '',
+        status: i.status || 'Inbox',
+        tag: i.tags?.[0] || 'Idea',
+        color: getRandomColor(),
+        createdAt: new Date(i.created_at).toLocaleDateString()
+      }));
+
+      set({ drafts, ideas, isLoading: false });
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      set({ isLoading: false });
+    }
+  },
+
+  addDraft: async (draft) => {
+    const { user } = useAuthStore.getState();
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase.from('posts').insert([{
+        user_id: user.id,
+        title: draft.title,
+        content: draft.post,
+        hook: draft.hook,
+        cta: draft.cta,
+        hashtags: draft.hashtags,
+        post_type: draft.tag,
+        status: 'Draft'
+      }]).select().single();
+
+      if (error) throw error;
+
+      if (data) {
+        const newDraft: Draft = {
+          ...draft,
+          id: data.id,
+          date: 'Just now',
+          color: getRandomColor(),
+          status: 'Draft'
+        };
+        set((state) => ({ drafts: [newDraft, ...state.drafts] }));
+      }
+    } catch (error) {
+      console.error('Error saving draft:', error);
+    }
+  },
+
+  addIdea: async (idea) => {
+    const { user } = useAuthStore.getState();
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase.from('ideas').insert([{
+        user_id: user.id,
+        title: idea.title,
+        content: idea.content,
+        status: 'Inbox'
+      }]).select().single();
+
+      if (error) throw error;
+
+      if (data) {
+        const newIdea: Idea = {
+          ...idea,
+          id: data.id,
+          status: 'Inbox',
+          tag: 'Idea',
+          color: getRandomColor(),
+          createdAt: 'Just now'
+        };
+        set((state) => ({ ideas: [newIdea, ...state.ideas] }));
+      }
+    } catch (error) {
+      console.error('Error saving idea:', error);
+    }
+  }
 }));

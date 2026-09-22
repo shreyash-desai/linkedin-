@@ -1,22 +1,41 @@
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
-import { Settings, Edit3, MessageCircle, Hash, AlignLeft, BarChart2 } from 'lucide-react';
+import { supabase } from '../services/supabaseClient';
+import { Settings, Edit3, MessageCircle, Hash, AlignLeft, BarChart2, LogOut } from 'lucide-react';
 
 export default function Profile() {
-  const { user } = useAuthStore();
+  const { user, profile, signOut } = useAuthStore();
+  const [writingProfile, setWritingProfile] = useState<any>(null);
+
+  useEffect(() => {
+    if (user) {
+      supabase.from('writing_profiles').select('*').eq('user_id', user.id).single()
+        .then(({ data }) => {
+          if (data) setWritingProfile(data);
+        });
+    }
+  }, [user]);
 
   return (
     <div className="p-6 md:p-10 max-w-4xl mx-auto pb-24 h-full">
       <header className="mb-10 flex justify-between items-start">
         <div className="flex items-center gap-6">
-          <img src={user?.avatar_url} alt="Avatar" className="w-24 h-24 rounded-full border-4 border-white shadow-soft" />
+          <div className="w-24 h-24 rounded-full border-4 border-white shadow-soft bg-text-main flex items-center justify-center text-white text-3xl font-bold">
+            {profile?.full_name?.charAt(0) || user?.email?.charAt(0).toUpperCase()}
+          </div>
           <div>
-            <h1 className="text-3xl md:text-[40px] font-bold tracking-tight text-text-main mb-1">{user?.name}</h1>
-            <p className="text-lg text-text-secondary font-medium">Founder & Developer</p>
+            <h1 className="text-3xl md:text-[40px] font-bold tracking-tight text-text-main mb-1">{profile?.full_name || 'Creator'}</h1>
+            <p className="text-lg text-text-secondary font-medium">{profile?.role || 'User'}</p>
           </div>
         </div>
-        <button className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-soft text-text-main hover:bg-cream transition-all">
-          <Settings className="w-6 h-6" />
-        </button>
+        <div className="flex gap-2">
+          <button className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-soft text-text-main hover:bg-cream transition-all">
+            <Settings className="w-5 h-5" />
+          </button>
+          <button onClick={signOut} className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-soft text-red-500 hover:bg-red-50 transition-all">
+            <LogOut className="w-5 h-5" />
+          </button>
+        </div>
       </header>
 
       <section className="mb-10">
@@ -33,7 +52,7 @@ export default function Profile() {
               <MessageCircle className="w-5 h-5" />
             </div>
             <span className="text-sm font-bold uppercase tracking-wider text-text-secondary">Tone</span>
-            <p className="text-xl font-semibold text-text-main">Direct & Conversational</p>
+            <p className="text-xl font-semibold text-text-main">{writingProfile?.tone || 'Not set'}</p>
           </div>
           
           <div className="bg-soft-green/60 rounded-[28px] p-6 flex flex-col gap-3">
@@ -42,9 +61,9 @@ export default function Profile() {
             </div>
             <span className="text-sm font-bold uppercase tracking-wider text-text-secondary">Topics</span>
             <div className="flex flex-wrap gap-2">
-              {['AI', 'Startups', 'Automation'].map(t => (
+              {writingProfile?.topics?.map((t: string) => (
                 <span key={t} className="bg-white px-3 py-1 rounded-full text-sm font-medium">{t}</span>
-              ))}
+              )) || <span className="text-sm text-text-muted">Not set</span>}
             </div>
           </div>
           
@@ -52,8 +71,8 @@ export default function Profile() {
             <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-text-main mb-2">
               <AlignLeft className="w-5 h-5" />
             </div>
-            <span className="text-sm font-bold uppercase tracking-wider text-text-secondary">Style</span>
-            <p className="text-lg font-medium text-text-main leading-snug">Short paragraphs. Personal observations. Practical lessons.</p>
+            <span className="text-sm font-bold uppercase tracking-wider text-text-secondary">Audience</span>
+            <p className="text-lg font-medium text-text-main leading-snug">{writingProfile?.audience || 'General'}</p>
           </div>
           
           <div className="bg-soft-yellow/40 rounded-[28px] p-6 flex flex-col gap-3">
@@ -61,7 +80,7 @@ export default function Profile() {
               <BarChart2 className="w-5 h-5" />
             </div>
             <span className="text-sm font-bold uppercase tracking-wider text-text-secondary">Avg. Length</span>
-            <p className="text-xl font-semibold text-text-main">Medium (150-250 words)</p>
+            <p className="text-xl font-semibold text-text-main">Medium</p>
           </div>
         </div>
       </section>

@@ -1,8 +1,13 @@
-import { Plus, Tag, Clock } from 'lucide-react';
+import { useEffect } from 'react';
+import { Plus, Tag, Clock, Loader2 } from 'lucide-react';
 import { useDataStore } from '../store/useDataStore';
 
 export default function Ideas() {
-  const { ideas } = useDataStore();
+  const { ideas, fetchData, isLoading } = useDataStore();
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   return (
     <div className="p-6 md:p-10 max-w-[1400px] mx-auto pb-24 h-full flex flex-col">
@@ -17,8 +22,10 @@ export default function Ideas() {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {ideas.map((idea, i) => (
-          <div key={i} className="bg-white rounded-[32px] p-8 shadow-soft border border-border-subtle group hover:border-text-main/10 transition-all cursor-pointer flex flex-col h-64">
+        {isLoading ? (
+          <div className="col-span-full flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-text-muted" /></div>
+        ) : ideas.map((idea, i) => (
+          <div key={idea.id || i} className="bg-white rounded-[32px] p-8 shadow-soft border border-border-subtle group hover:border-text-main/10 transition-all cursor-pointer flex flex-col h-64">
             <div className="flex justify-between items-start mb-4">
               <span className={`px-3 py-1 rounded-full text-xs font-bold ${idea.color} text-text-main`}>
                 {idea.status}
@@ -32,7 +39,7 @@ export default function Ideas() {
                 <Tag className="w-4 h-4" /> {idea.tag}
               </div>
               <div className="flex items-center gap-1.5 text-text-muted text-sm font-medium">
-                <Clock className="w-4 h-4" /> 2d ago
+                <Clock className="w-4 h-4" /> {idea.createdAt}
               </div>
             </div>
           </div>

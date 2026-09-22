@@ -1,22 +1,35 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
-import { PenSquare, Sparkles, Lightbulb, RefreshCw, ChevronRight } from 'lucide-react';
+import { useDataStore } from '../store/useDataStore';
+import { PenSquare, Sparkles, Lightbulb, RefreshCw, ChevronRight, FileText, Loader2, ArrowRight } from 'lucide-react';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, profile } = useAuthStore();
+  const { drafts, fetchData, isLoading } = useDataStore();
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   return (
     <div className="p-6 md:p-10 max-w-5xl mx-auto pb-24">
       <header className="mb-10 flex justify-between items-end">
         <div>
           <h1 className="text-[32px] md:text-[44px] font-bold tracking-tight text-text-main leading-tight mb-2">
-            Good morning, {user?.name || 'Creator'}
+            Good morning, {profile?.full_name || user?.email?.split('@')[0] || 'Creator'}
           </h1>
           <p className="text-lg text-text-secondary">Ready to turn an idea into a post?</p>
         </div>
         <div className="hidden md:flex items-center gap-4">
-          <img src={user?.avatar_url} alt="Profile" className="w-14 h-14 rounded-full border-2 border-white shadow-sm" />
+          {profile?.avatar_url ? (
+             <img src={profile.avatar_url} alt="Profile" className="w-14 h-14 rounded-full border-2 border-white shadow-sm" />
+          ) : (
+             <div className="w-14 h-14 rounded-full border-2 border-white shadow-sm bg-text-main flex items-center justify-center text-white font-bold text-xl">
+               {profile?.full_name?.charAt(0) || user?.email?.charAt(0).toUpperCase()}
+             </div>
+          )}
         </div>
       </header>
       
@@ -64,11 +77,14 @@ export default function Dashboard() {
         </button>
       </div>
       <div className="space-y-4">
-        {[
-          { title: 'Why simplicity wins in product design', date: 'Today', tag: 'Product', color: 'bg-soft-green' },
-          { title: 'The hidden cost of complex features', date: 'Yesterday', tag: 'Engineering', color: 'bg-soft-lavender' }
-        ].map((draft, i) => (
-          <div key={i} className="bg-white rounded-[24px] p-5 shadow-soft flex items-center justify-between group cursor-pointer border border-border-subtle hover:border-text-main/10 transition-all">
+        {isLoading ? (
+          <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-text-muted" /></div>
+        ) : drafts.length === 0 ? (
+          <div className="bg-cream-light border border-border-subtle rounded-[24px] p-8 text-center text-text-muted">
+            No drafts yet. Start writing to see your recent activity here.
+          </div>
+        ) : drafts.slice(0, 3).map((draft, i) => (
+          <div key={draft.id || i} onClick={() => navigate('/drafts')} className="bg-white rounded-[24px] p-5 shadow-soft flex items-center justify-between group cursor-pointer border border-border-subtle hover:border-text-main/10 transition-all">
             <div className="flex items-center gap-4">
               <div className={`w-12 h-12 rounded-2xl ${draft.color} flex items-center justify-center`}>
                 <FileText className="w-6 h-6 text-text-main opacity-70" />
@@ -87,6 +103,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-// Need to import missing icons
-import { ArrowRight, FileText } from 'lucide-react';
