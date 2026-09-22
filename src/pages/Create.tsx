@@ -24,9 +24,12 @@ export default function Create() {
   const [isGeneratingNote, setIsGeneratingNote] = useState(false);
   const [noteResult, setNoteResult] = useState<string | null>(null);
   
+  const [error, setError] = useState<string | null>(null);
+
   const handleGeneratePost = async () => {
     if (!idea.trim()) return;
     setIsGeneratingPost(true);
+    setError(null);
     try {
       const post = await aiService.generatePost({
         idea,
@@ -35,8 +38,9 @@ export default function Create() {
         postType
       });
       setPostResult(post);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      setError(e.message || "Failed to generate post. Check API key configuration.");
     }
     setIsGeneratingPost(false);
   };
@@ -44,11 +48,13 @@ export default function Create() {
   const handleGenerateNote = async () => {
     if (!target.trim() || !reason.trim()) return;
     setIsGeneratingNote(true);
+    setError(null);
     try {
       const note = await aiService.generateConnectionNote({ target, reason });
       setNoteResult(note);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      setError(e.message || "Failed to generate note. Check API key configuration.");
     }
     setIsGeneratingNote(false);
   };
@@ -190,7 +196,7 @@ export default function Create() {
         </div>
 
         {/* Right Column: Result */}
-        <div className={`flex-1 flex-col h-full transition-all duration-500 ${(activeTab === 'Post' ? postResult || isGeneratingPost : noteResult || isGeneratingNote) ? 'flex' : 'hidden lg:flex'}`}>
+        <div className={`flex-1 flex-col h-full transition-all duration-500 ${(activeTab === 'Post' ? postResult || isGeneratingPost || error : noteResult || isGeneratingNote || error) ? 'flex' : 'hidden lg:flex'}`}>
           
           {(activeTab === 'Post' && isGeneratingPost) || (activeTab === 'Connection' && isGeneratingNote) ? (
             <div className="flex-1 bg-pastel-blue/30 rounded-[32px] md:rounded-[36px] shadow-soft p-8 flex flex-col items-center justify-center animate-pulse border border-border-subtle">
@@ -264,6 +270,14 @@ export default function Create() {
                   <Copy className="w-5 h-5" /> Copy note
                 </button>
               </div>
+            </div>
+          ) : error ? (
+            <div className="flex-1 bg-red-50/50 border-2 border-dashed border-red-200 rounded-[32px] md:rounded-[36px] p-8 flex flex-col items-center justify-center text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                <span className="text-2xl">⚠️</span>
+              </div>
+              <h3 className="text-xl font-bold text-red-600 mb-2">Generation Failed</h3>
+              <p className="text-red-500 max-w-[300px]">{error}</p>
             </div>
           ) : (
             <div className="flex-1 bg-cream-light/50 border-2 border-dashed border-border-subtle rounded-[32px] md:rounded-[36px] p-8 flex flex-col items-center justify-center text-center">
