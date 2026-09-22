@@ -30,7 +30,7 @@ export default function App() {
         <Route path="/auth" element={<Auth />} />
         <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
         
-        <Route path="/" element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
+        <Route path="/" element={<AppShell />}>
           <Route index element={<Dashboard />} />
           <Route path="create" element={<Create />} />
           <Route path="ideas" element={<Ideas />} />
