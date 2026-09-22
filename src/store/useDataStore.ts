@@ -40,7 +40,7 @@ const getRandomColor = () => COLORS[Math.floor(Math.random() * COLORS.length)];
 
 export const useDataStore = create<DataState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       drafts: [],
       ideas: [],
       guestProfile: null,
