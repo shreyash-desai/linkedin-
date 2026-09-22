@@ -26,10 +26,12 @@ export interface Idea {
 interface DataState {
   drafts: Draft[];
   ideas: Idea[];
+  guestProfile: { role: string; tone: string; topics: string[]; audience: string } | null;
   isLoading: boolean;
   fetchData: () => Promise<void>;
   addDraft: (draft: Omit<Draft, 'id' | 'date' | 'color' | 'status'>) => Promise<void>;
   addIdea: (idea: Omit<Idea, 'id' | 'createdAt' | 'color' | 'status' | 'tag'>) => Promise<void>;
+  setGuestProfile: (profile: { role: string; tone: string; topics: string[]; audience: string }) => void;
   clearLocalData: () => void;
 }
 
@@ -41,9 +43,11 @@ export const useDataStore = create<DataState>()(
     (set, get) => ({
       drafts: [],
       ideas: [],
+      guestProfile: null,
       isLoading: false,
 
-      clearLocalData: () => set({ drafts: [], ideas: [] }),
+      setGuestProfile: (profile) => set({ guestProfile: profile }),
+      clearLocalData: () => set({ drafts: [], ideas: [], guestProfile: null }),
 
       fetchData: async () => {
         const { user } = useAuthStore.getState();
@@ -178,8 +182,8 @@ export const useDataStore = create<DataState>()(
       partialize: (state) => {
         // Only persist local data if the user is a guest.
         const { user } = useAuthStore.getState();
-        if (user) return { drafts: [], ideas: [] }; // Don't persist remote data locally
-        return { drafts: state.drafts, ideas: state.ideas };
+        if (user) return { drafts: [], ideas: [], guestProfile: null }; // Don't persist remote data locally
+        return { drafts: state.drafts, ideas: state.ideas, guestProfile: state.guestProfile };
       },
     }
   )

@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
+import { useDataStore } from '../store/useDataStore';
 import { supabase } from '../services/supabaseClient';
 import { aiService } from '../services/ai/geminiClient';
-import { Settings, Edit3, MessageCircle, Hash, AlignLeft, BarChart2, LogOut, Loader2, Sparkles, Check } from 'lucide-react';
+import { Settings, Edit3, MessageCircle, Hash, AlignLeft, BarChart2, LogOut, Loader2, Sparkles, Check, UserPlus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function Profile() {
+  const navigate = useNavigate();
   const { user, profile, signOut } = useAuthStore();
+  const { guestProfile, setGuestProfile } = useDataStore();
   const [writingProfile, setWritingProfile] = useState<any>(null);
   
   const [isEditing, setIsEditing] = useState(false);
@@ -31,8 +35,19 @@ export default function Profile() {
             setRole(profile?.role || '');
           }
         });
+    } else if (guestProfile) {
+      // Load from guest local storage
+      setWritingProfile({
+        tone: guestProfile.tone,
+        topics: guestProfile.topics,
+        audience: guestProfile.audience,
+      });
+      setTone(guestProfile.tone || '');
+      setTopics(guestProfile.topics || []);
+      setAudience(guestProfile.audience || '');
+      setRole(guestProfile.role || '');
     }
-  }, [user, profile]);
+  }, [user, profile, guestProfile]);
 
   const handleAnalyze = async () => {
     if (!bioText.trim()) return;
@@ -50,30 +65,29 @@ export default function Profile() {
   };
 
   const handleSave = async () => {
-    if (!user) {
-      // For guests, we can't save to DB easily here since profile relies on Auth
-      setIsEditing(false);
-      return;
-    }
-    
     setIsSaving(true);
     try {
-      // Update writing_profiles
-      await supabase.from('writing_profiles').upsert({
-        user_id: user.id,
-        tone,
-        topics,
-        audience,
-      });
-      
-      // Update profiles
-      await supabase.from('profiles').update({
-        role
-      }).eq('id', user.id);
-      
-      // Refresh local state
-      setWritingProfile({ ...writingProfile, tone, topics, audience });
-      setIsEditing(false);
+      if (!user) {
+        // Guest mode: save to local store
+        setGuestProfile({ role, tone, topics, audience });
+        setWritingProfile({ tone, topics, audience });
+        setIsEditing(false);
+      } else {
+        // Auth mode: save to DB
+        await supabase.from('writing_profiles').upsert({
+          user_id: user.id,
+          tone,
+          topics,
+          audience,
+        });
+        
+        await supabase.from('profiles').update({
+          role
+        }).eq('id', user.id);
+        
+        setWritingProfile({ ...writingProfile, tone, topics, audience });
+        setIsEditing(false);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -82,17 +96,22 @@ export default function Profile() {
 
   return (
     <div className="p-6 md:p-10 max-w-4xl mx-auto pb-24 h-full">
-      <header className="mb-10 flex justify-between items-start">
+      <header className="mb-10 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
         <div className="flex items-center gap-6">
-          <div className="w-24 h-24 rounded-full border-4 border-white shadow-soft bg-text-main flex items-center justify-center text-white text-3xl font-bold">
+          <div className="w-24 h-24 rounded-full border-4 border-white shadow-soft bg-text-main flex items-center justify-center text-white text-3xl font-bold shrink-0">
             {profile?.full_name?.charAt(0) || user?.email?.charAt(0).toUpperCase() || 'G'}
           </div>
           <div>
-            <h1 className="text-3xl md:text-[40px] font-bold tracking-tight text-text-main mb-1">{profile?.full_name || 'Creator'}</h1>
-            <p className="text-lg text-text-secondary font-medium">{role || profile?.role || 'Guest User'}</p>
+            <h1 className="text-3xl md:text-[40px] font-bold tracking-tight text-text-main mb-1 truncate">{profile?.full_name || 'Guest'}</h1>
+            <p className="text-lg text-text-secondary font-medium">{role || profile?.role || 'Creator'}</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 self-end sm:self-auto">
+          {!user && (
+            <button onClick={() => navigate('/auth')} className="h-12 px-6 bg-text-main rounded-full flex items-center justify-center shadow-soft text-white font-semibold hover:bg-black transition-all gap-2 text-sm">
+              <UserPlus className="w-4 h-4" /> Sign Up to Sync
+            </button>
+          )}
           <button className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-soft text-text-main hover:bg-cream transition-all">
             <Settings className="w-5 h-5" />
           </button>
@@ -105,7 +124,7 @@ export default function Profile() {
       </header>
 
       {isEditing ? (
-        <section className="mb-10 bg-white rounded-[32px] shadow-soft p-8 border border-border-subtle">
+        <section className="mb-10 bg-white rounded-[32px] shadow-soft p-6 md:p-8 border border-border-subtle">
           <div className="flex justify-between items-end mb-6">
             <h2 className="text-2xl font-bold text-text-main">AI Profile Setup</h2>
             <button onClick={() => setIsEditing(false)} className="text-text-muted font-semibold hover:text-text-main text-sm transition-colors">

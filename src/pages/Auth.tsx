@@ -134,7 +134,7 @@ export default function Auth() {
             </button>
           </form>
 
-          <div className="mt-8 text-center">
+          <div className="mt-8 text-center flex flex-col gap-4">
             <button
               type="button"
               onClick={() => {
@@ -144,6 +144,20 @@ export default function Auth() {
               className="text-text-secondary font-medium hover:text-text-main transition-colors text-sm"
             >
               {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+            </button>
+            
+            <div className="relative flex items-center py-2">
+              <div className="flex-grow border-t border-border-subtle"></div>
+              <span className="flex-shrink-0 mx-4 text-text-muted text-xs uppercase tracking-wider font-bold">Or</span>
+              <div className="flex-grow border-t border-border-subtle"></div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => window.location.href = '/'}
+              className="text-text-main font-bold hover:opacity-70 transition-colors text-sm"
+            >
+              Continue as Guest (No account needed)
             </button>
           </div>
         </div>
