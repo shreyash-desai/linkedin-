@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 // In production, these should be handled strictly server-side.
 // We simulate an API layer here for frontend development.
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY; 
-const modelName = import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.5-flash-lite';
+const modelName = import.meta.env.VITE_GEMINI_MODEL || 'gemini-3.5-flash-lite';
 
 export interface AIPostRequest {
   idea: string;
